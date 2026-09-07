@@ -13,5 +13,3 @@ services:
         value: production
       - key: APP_NAME
         value: RecuperaIA
-      - key: PORT
-        value: 3000
