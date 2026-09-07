@@ -20,7 +20,7 @@ if (fs.existsSync(cloudflaredPath)) {
   console.log(`📡 Disparando cloudflared com flag obrigatória --no-prechecks na porta ${port}...`);
   const tunnel = spawn(cloudflaredPath, [
     'tunnel',
-    '--url', `http://localhost:${port}`,
+    '--url', `http://127.0.0.1:${port}`,
     '--no-prechecks'
   ]);
 
