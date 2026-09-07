@@ -1,0 +1,47 @@
+{
+  "name": "recuperaia",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "node server.js",
+    "test": "node tests/run_all.js",
+    "test:cloud": "node tests/test_cloud_live.js",
+    "tunnel": "node start_tunnel.mjs",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^7.10.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "bcryptjs": "^3.0.3",
+    "canvas-confetti": "^1.9.4",
+    "clsx": "^2.1.1",
+    "jsonwebtoken": "^9.0.3",
+    "lucide-react": "^1.41.0",
+    "next": "^16.3.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^24.13.3",
+    "@types/qrcode": "^1.5.6",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.1.0",
+    "autoprefixer": "^10.5.5",
+    "cloudflared": "^0.7.3",
+    "localtunnel": "^2.0.2",
+    "oxlint": "^1.79.0",
+    "postcss": "^8.5.28",
+    "prisma": "^8.0.0-rc.13",
+    "tailwindcss": "^3.4.17",
+    "typescript": "~6.0.2",
+    "vite": "^8.2.2"
+  }
+}

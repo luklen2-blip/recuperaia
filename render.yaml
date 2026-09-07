@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: recuperaia
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm test && npm run build
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_NAME
+        value: RecuperaIA
+      - key: PORT
+        value: 3000

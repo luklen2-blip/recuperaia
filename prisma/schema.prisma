@@ -1,0 +1,229 @@
+// Schema do Prisma para o RecuperaIA
+// SaaS Multi-tenant de Recuperação de Vendas e Carrinhos Abandonados com IA
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id                  String               @id @default(cuid())
+  name                String
+  slug                String               @unique
+  email               String
+  phone               String?
+  segment             String               @default("retail") // ex: restaurant, retail, clinic, etc.
+  companySize         String               @default("small")
+  plan                String               @default("start") // "start", "pro", "business"
+  planStatus          String               @default("trialing") // "active", "trialing", "past_due", "canceled"
+  isLiveMode          Boolean              @default(false) // false = Sandbox / Modo Teste, true = Produção Conectada
+  active              Boolean              @default(true)
+  onboardingCompleted Boolean              @default(false)
+  salesChannels       String[]             @default([])
+  mainObjective       String?              @default("Recuperar vendas e carrinhos abandonados")
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+
+  // Relacionamentos Multi-tenant estritos
+  members             TenantMember[]
+  customers           Customer[]
+  orders              Order[]
+  campaigns           RecoveryCampaign[]
+  messages            RecoveryMessage[]
+  integrations        IntegrationConfig[]
+  subscriptions       Subscription[]
+  auditLogs           AuditLog[]
+
+  @@index([slug])
+  @@index([email])
+}
+
+model User {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  passwordHash String
+  name         String
+  role         String         @default("OWNER") // "SUPERADMIN", "OWNER", "ADMIN", "OPERATOR"
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  members      TenantMember[]
+  auditLogs    AuditLog[]
+
+  @@index([email])
+}
+
+model TenantMember {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String
+  role      String   @default("OWNER") // "OWNER", "ADMIN", "OPERATOR"
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, userId])
+  @@index([tenantId])
+  @@index([userId])
+}
+
+model Customer {
+  id                    String            @id @default(cuid())
+  tenantId              String
+  name                  String
+  phone                 String
+  email                 String?
+  segment               String            @default("new") // "vip", "inactive", "at_risk", "new", "high_opportunity", "lost"
+  totalSpend            Float             @default(0)
+  purchaseCount         Int               @default(0)
+  averageTicket         Float             @default(0)
+  daysSinceLastPurchase Int               @default(0)
+  lastPurchaseDate      DateTime?
+  returnProbability     Float             @default(50.0) // 0 a 100%
+  aiRecommendation      String?
+  consentGiven          Boolean           @default(true)
+  consentDate           DateTime          @default(now())
+  notes                 String?           @default("")
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
+
+  tenant                Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  orders                Order[]
+  messages              RecoveryMessage[]
+
+  @@index([tenantId, phone])
+  @@index([tenantId, segment])
+}
+
+model Order {
+  id              String            @id @default(cuid())
+  tenantId        String
+  customerId      String
+  externalId      String?           // ID original no Shopify, WooCommerce, Nuvemshop, etc.
+  source          String            @default("MANUAL") // "SHOPIFY", "WOOCOMMERCE", "NUVEMSHOP", "HOTMART", "KIWIFY", "MERCADOPAGO", "MANUAL"
+  status          String            @default("ABANDONED_CART") // "ABANDONED_CART", "PENDING_PIX", "PENDING_BOLETO", "FAILED_CARD", "RECOVERED", "EXPIRED"
+  totalValue      Float
+  itemsJson       String            @default("[]") // JSON detalhado dos itens
+  checkoutUrl     String?
+  recoveredAt     DateTime?
+  recoveryRevenue Float             @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer        Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  messages        RecoveryMessage[]
+
+  @@index([tenantId, status])
+  @@index([customerId])
+}
+
+model RecoveryCampaign {
+  id              String            @id @default(cuid())
+  tenantId        String
+  title           String
+  type            String            @default("CART_ABANDONED") // "CART_ABANDONED", "PENDING_PIX", "WINBACK", "REPURCHASE"
+  targetSegment   String            // "vip", "inactive", "at_risk", etc.
+  channel         String            @default("WHATSAPP")
+  status          String            @default("ACTIVE") // "DRAFT", "ACTIVE", "PAUSED", "COMPLETED"
+  messageTemplate String
+  offerSuggestion String?
+  ctaText         String?           @default("Concluir Pedido com Desconto")
+  audienceCount   Int               @default(0)
+  sentCount       Int               @default(0)
+  deliveredCount  Int               @default(0)
+  responseCount   Int               @default(0)
+  conversionCount Int               @default(0)
+  recoveredRevenue Float            @default(0)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  tenant          Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  messages        RecoveryMessage[]
+
+  @@index([tenantId, status])
+}
+
+model RecoveryMessage {
+  id                String            @id @default(cuid())
+  tenantId          String
+  customerId        String
+  orderId           String?
+  campaignId        String?
+  channel           String            @default("WHATSAPP")
+  direction         String            @default("OUTBOUND") // "OUTBOUND", "INBOUND"
+  content           String
+  status            String            @default("SENT") // "PENDING", "SENT", "DELIVERED", "READ", "FAILED", "REPLIED"
+  providerMessageId String?
+  isAiGenerated     Boolean           @default(false)
+  isSandbox         Boolean           @default(true) // Demarcação estrita: true = Sandbox/Simulado, false = Meta Cloud API Real
+  createdAt         DateTime          @default(now())
+
+  tenant            Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  customer          Customer          @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  order             Order?            @relation(fields: [orderId], references: [id], onDelete: SetNull)
+  campaign          RecoveryCampaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, customerId])
+  @@index([tenantId, createdAt])
+}
+
+model IntegrationConfig {
+  id              String    @id @default(cuid())
+  tenantId        String
+  provider        String    // "OPENAI", "WHATSAPP", "MERCADOPAGO"
+  isEnabled       Boolean   @default(false)
+  isLiveMode      Boolean   @default(false) // false = Modo Sandbox, true = Produção com chaves reais
+  credentialsJson String    @default("{}") // Armazenamento seguro de tokens e endpoints
+  webhookSecret   String?
+  status          String    @default("NOT_CONFIGURED") // "NOT_CONFIGURED", "TESTED_OK", "ERROR"
+  lastTestedAt    DateTime?
+  lastError       String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  tenant          Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@unique([tenantId, provider])
+  @@index([tenantId])
+}
+
+model Subscription {
+  id            String    @id @default(cuid())
+  tenantId      String
+  plan          String    // "start", "pro", "business"
+  price         Float
+  status        String    @default("PENDING") // "PENDING", "PAID", "EXPIRED", "CANCELED"
+  pixQrCode     String?   // Base64 ou URL do QR Code
+  pixCopiaECola String?   // Payload oficial EMV BACEN
+  paymentId     String?   // ID no Mercado Pago
+  paidAt        DateTime?
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@index([tenantId, status])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  tenantId  String
+  userId    String?
+  userEmail String
+  action    String
+  resource  String
+  details   String
+  createdAt DateTime @default(now())
+
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([tenantId, createdAt])
+}
