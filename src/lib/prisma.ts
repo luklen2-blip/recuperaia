@@ -8,7 +8,7 @@ let prismaInstance: any = null;
 
 try {
   // Tentativa de carregar o cliente gerado do Prisma
-  const prismaModule = await import('@prisma/client');
+  const prismaModule: any = await import('@prisma/client');
   if (prismaModule && prismaModule.PrismaClient) {
     const globalForPrisma = globalThis as unknown as {
       prisma: any;

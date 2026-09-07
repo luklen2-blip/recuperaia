@@ -4,24 +4,24 @@ import { DataProvider, useData } from './context/DataContext';
 import { Customer, CustomerSegmentKey } from './types';
 
 // Páginas Públicas & Autenticação
-import { LandingPage } from './pages/LandingPage';
-import { LoginPage } from './pages/LoginPage';
-import { RegisterPage } from './pages/RegisterPage';
-import { OnboardingPage } from './pages/OnboardingPage';
+import { LandingPage } from './views/LandingPage';
+import { LoginPage } from './views/LoginPage';
+import { RegisterPage } from './views/RegisterPage';
+import { OnboardingPage } from './views/OnboardingPage';
 
 // Layout e Páginas do Painel SaaS
 import { AppLayout } from './components/layout/AppLayout';
-import { DashboardPage } from './pages/DashboardPage';
-import { CustomersPage } from './pages/CustomersPage';
-import { SegmentsPage } from './pages/SegmentsPage';
-import { AiInsightsPage } from './pages/AiInsightsPage';
-import { CampaignsPage } from './pages/CampaignsPage';
-import { WhatsAppPage } from './pages/WhatsAppPage';
-import { AutomationsPage } from './pages/AutomationsPage';
-import { AnalyticsPage } from './pages/AnalyticsPage';
-import { PlansPage } from './pages/PlansPage';
-import { AdminPage } from './pages/AdminPage';
-import { SettingsPage } from './pages/SettingsPage';
+import { DashboardPage } from './views/DashboardPage';
+import { CustomersPage } from './views/CustomersPage';
+import { SegmentsPage } from './views/SegmentsPage';
+import { AiInsightsPage } from './views/AiInsightsPage';
+import { CampaignsPage } from './views/CampaignsPage';
+import { WhatsAppPage } from './views/WhatsAppPage';
+import { AutomationsPage } from './views/AutomationsPage';
+import { AnalyticsPage } from './views/AnalyticsPage';
+import { PlansPage } from './views/PlansPage';
+import { AdminPage } from './views/AdminPage';
+import { SettingsPage } from './views/SettingsPage';
 
 // Modais Globais
 import { CampaignWizard } from './components/campaigns/CampaignWizard';
