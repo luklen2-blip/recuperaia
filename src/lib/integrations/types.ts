@@ -61,12 +61,16 @@ export interface AiRecoveryContext {
   discountOffered?: string;
   checkoutUrl?: string;
   tone?: 'friendly' | 'urgent' | 'consultative' | 'direct';
+  bottleneck?: 'pix_unpaid' | 'card_declined' | 'cart_abandoned' | 'post_sale' | 'general';
+  productName?: string;
+  pixKey?: string;
 }
 
 export interface AiRecoveryResult {
   success: boolean;
   mode: ProviderMode;
   suggestedCopy: string;
+  pixMessage?: string;
   offerSuggestion: string;
   urgencyLevel: 'low' | 'medium' | 'high';
   modelUsed: string;

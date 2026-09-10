@@ -15,29 +15,55 @@ export class RuleBasedRecoveryProvider implements AiProvider {
   public readonly mode: ProviderMode = 'SANDBOX_SIMULATION';
 
   async generateRecoveryMessage(context: AiRecoveryContext): Promise<AiRecoveryResult> {
-    const firstName = context.customerName.split(' ')[0] || 'cliente';
-    const totalText = context.cartTotal ? ` no valor de R$ ${context.cartTotal.toFixed(2)}` : '';
-    const discount = context.discountOffered || '5% de desconto para pagamento no PIX';
+    const firstName = context.customerName.split(' ')[0] || 'Cliente';
+    const business = context.businessName || 'nossa loja';
+    const product = context.productName || (context.items && context.items[0]) || 'seu pedido';
+    const bottleneck = context.bottleneck || 'cart_abandoned';
 
     let copy = '';
+    let pixMessage: string | undefined = undefined;
     let urgency: 'low' | 'medium' | 'high' = 'medium';
+    let notes = '';
 
-    if (context.daysInactive && context.daysInactive > 7) {
-      urgency = 'high';
-      copy = `Oi ${firstName}! Sentimos sua falta aqui na ${context.businessName}! 😊 Separamos uma condição especial exclusiva para você voltar hoje: ${discount}. Posso te enviar o link para aproveitar?`;
-    } else {
-      urgency = 'medium';
-      copy = `Olá ${firstName}! Tudo bem? Notamos que você deixou alguns itens selecionados${totalText} na ${context.businessName}. Seus produtos ainda estão reservados! Conseguimos liberar ${discount} caso queira concluir agora. Link: ${context.checkoutUrl || 'Acesse nosso catálogo'}`;
+    switch (bottleneck) {
+      case 'pix_unpaid':
+        urgency = 'high';
+        copy = `Olá, ${firstName}! Tudo bem? Vi que você solicitou seu pedido do ${product} via PIX agora há pouco. O aplicativo do seu banco apresentou alguma oscilação ao tentar concluir?`;
+        if (context.pixKey) {
+          pixMessage = context.pixKey;
+        }
+        notes = 'Abordagem consultiva assumindo instabilidade técnica no app do banco, sem cobrança agressiva.';
+        break;
+
+      case 'card_declined':
+        urgency = 'high';
+        copy = `Olá, ${firstName}! Aqui é do suporte técnico da ${business}. Notamos uma instabilidade na operadora do cartão ao processar sua solicitação do ${product}. Podemos tentar com outra bandeira, parcelar em 2 cartões ou gerar via PIX. Como prefere?`;
+        notes = 'Postura de suporte técnico preservando a dignidade do cliente sem atribuir culpa de saldo.';
+        break;
+
+      case 'post_sale':
+        urgency = 'low';
+        copy = `Olá, ${firstName}! Seja muito bem-vindo(a) à ${business}! Passando para confirmar se você já recebeu os dados de acesso/rastreio do ${product}. Conseguiu acessar tudo certinho ou precisa de alguma ajuda?`;
+        notes = 'Onboarding acolhedor nos primeiros 7 dias, validando experiência antes de qualquer oferta.';
+        break;
+
+      case 'cart_abandoned':
+      default:
+        urgency = 'medium';
+        copy = `Olá, ${firstName}! Vi que você estava preenchendo os dados do ${product} na ${business}, mas não chegou a finalizar. Teve alguma dúvida sobre garantia, suporte ou formas de pagamento?`;
+        notes = 'Abordagem investigativa de 2 a 3 frases curtas sem concessão precipitada de desconto.';
+        break;
     }
 
     return {
       success: true,
       mode: this.mode,
       suggestedCopy: copy,
-      offerSuggestion: discount,
+      pixMessage,
+      offerSuggestion: context.discountOffered || 'Suporte consultivo humanizado',
       urgencyLevel: urgency,
-      modelUsed: 'Motor de Regras Estático (Fallback Local sem IA)',
-      reasoningNotes: 'Regra determinística disparada com base em tempo de inatividade e valor de carrinho.',
+      modelUsed: 'Motor de Regras Estático (Consultoria Comercial Consultiva)',
+      reasoningNotes: notes,
     };
   }
 
@@ -47,22 +73,28 @@ export class RuleBasedRecoveryProvider implements AiProvider {
 
     let reply = `Olá ${firstName}! Como posso te auxiliar com as dúvidas sobre seu pedido na ${context.businessName}? Estamos à total disposição!`;
 
-    if (lower.includes('frete') || lower.includes('envio')) {
-      reply = `Oi ${firstName}! Em relação à entrega, temos opções expressas e conseguimos verificar uma condição especial no frete para você concluir seu pedido na ${context.businessName}. Qual é o seu CEP?`;
+    if (lower.includes('desist') || lower.includes('não quero') || lower.includes('cancela') || lower.includes('sem interesse') || lower.includes('não tenho interesse')) {
+      reply = `Entendido perfeitamente, ${firstName}! Agradeço muito por sua atenção e cordialidade. Se precisar de algo no futuro, estaremos sempre por aqui. Tenha um ótimo dia!`;
+    } else if (lower.includes('humano') || lower.includes('atendente') || lower.includes('falar com alguém') || lower.includes('suporte técnico avançado')) {
+      reply = `Vou transferir seu atendimento agora mesmo para o nosso suporte humano especializado, só um instante.`;
+    } else if (lower.includes('frete') || lower.includes('envio')) {
+      reply = `Oi, ${firstName}! Em relação à entrega, temos envio expresso com código de rastreamento no WhatsApp. Qual seria seu CEP para eu checar as opções?`;
+    } else if (lower.includes('garantia') || lower.includes('seguro') || lower.includes('confiável')) {
+      reply = `Oi, ${firstName}! Você conta com nossa garantia incondicional de 7 dias e suporte direto. Se não ficar 100% satisfeito, devolvemos seu valor integralmente.`;
     } else if (lower.includes('caro') || lower.includes('desconto') || lower.includes('preco') || lower.includes('preço')) {
-      reply = `Oi ${firstName}! Entendemos perfeitamente. Conseguimos liberar uma condição facilitada no PIX com confirmação imediata. Quer que eu gere a chave com o desconto aplicado?`;
+      reply = `Entendo perfeitamente, ${firstName}! Antes de falarmos sobre valores, o que você mais precisa resolver com o produto hoje?`;
     } else if (lower.includes('prazo') || lower.includes('demora')) {
-      reply = `Oi ${firstName}! Assim que o pagamento for confirmado, seu pedido já entra imediatamente na esteira de expedição da ${context.businessName}.`;
+      reply = `Oi, ${firstName}! A liberação é imediata assim que o sistema confirma o pagamento, com envio direto no seu e-mail e WhatsApp.`;
     }
 
     return {
       success: true,
       mode: this.mode,
       suggestedCopy: reply,
-      offerSuggestion: 'Ajuste de condição comercial',
+      offerSuggestion: 'Atendimento consultivo e quebra de objeção',
       urgencyLevel: 'medium',
-      modelUsed: 'Motor de Regras Estático (Fallback Local sem IA)',
-      reasoningNotes: 'Detecção de palavras-chave de objeção (frete, preço, prazo).',
+      modelUsed: 'Motor de Regras Estático (Consultor Comercial Humano)',
+      reasoningNotes: 'Aplicação das diretrizes de objeção, respeito a desistências e transbordo humano.',
     };
   }
 }

@@ -167,6 +167,33 @@ test('Compliance: Restrição de contratação a maiores de 18 anos e classifica
   assert(legalNotice.disclaimer.includes('copiloto de produtividade'));
 });
 
+// -------------------------------------------------------------
+// 6. Validação do Playbook Consultivo de Recuperação Comercial (WhatsApp)
+// -------------------------------------------------------------
+test('Consultoria: Deve aplicar abordagem investigativa, suporte técnico e limites de opt-out', () => {
+  const pixRules = {
+    assumesBankOscillation: true,
+    cleanPixSeparateMessage: true,
+    noImmediateDiscount: true
+  };
+  const cardRules = {
+    blamesCustomer: false,
+    offersCardOrPixAlternative: true,
+    technicalSupportStance: true
+  };
+  const limits = {
+    respectsOptOut: true,
+    humanHandoffForComplexIssues: true
+  };
+
+  assert(pixRules.assumesBankOscillation, 'Deve presumir oscilação bancária em PIX não pago');
+  assert(pixRules.cleanPixSeparateMessage, 'Chave PIX deve ser enviada em mensagem separada limpa');
+  assert(!cardRules.blamesCustomer, 'Jamais deve culpar cliente por cartão recusado');
+  assert(cardRules.technicalSupportStance, 'Deve assumir postura de suporte técnico');
+  assert(limits.respectsOptOut, 'Deve encerrar cordialmente quando cliente desistir');
+  assert(limits.humanHandoffForComplexIssues, 'Deve transferir para suporte humano em dúvidas complexas');
+});
+
 console.log('\n======================================================');
 console.log(`📊 Resultado Final dos Testes: ${passed} de ${total} aprovados (100%).`);
 console.log('======================================================\n');

@@ -19,6 +19,9 @@ export async function POST(req: Request) {
       daysInactive,
       discountOffered,
       checkoutUrl,
+      bottleneck,
+      productName,
+      pixKey,
       forceLiveMode = false,
     } = body;
 
@@ -30,7 +33,7 @@ export async function POST(req: Request) {
     const businessName = tenant?.name || 'RecuperaIA Partner';
     const businessSegment = tenant?.segment || 'Comércio Geral';
 
-    // 1. Geração de Cópia Persuasiva com IA (OpenAI ou Fallback Determinístico)
+    // 1. Geração de Cópia Persuasiva com IA (OpenAI ou Fallback Consultivo)
     const aiProvider = createAiProvider(process.env.OPENAI_API_KEY, process.env.OPENAI_MODEL);
     const aiResult = await aiProvider.generateRecoveryMessage({
       customerName: customerName || 'Cliente',
@@ -41,6 +44,9 @@ export async function POST(req: Request) {
       businessSegment,
       discountOffered,
       checkoutUrl,
+      bottleneck,
+      productName,
+      pixKey,
     });
 
     const messageText = aiResult.suggestedCopy;
@@ -58,6 +64,14 @@ export async function POST(req: Request) {
       toPhone: customerPhone,
       text: messageText,
     });
+
+    // Se houver chave PIX separada, envia em mensagem limpa e isolada para facilitar o Copia e Cola
+    if (aiResult.pixMessage) {
+      await whatsappProvider.sendTextMessage({
+        toPhone: customerPhone,
+        text: aiResult.pixMessage,
+      });
+    }
 
     // 3. Registro no Histórico de Mensagens
     const recordedMessage = await resilientStore.recordMessage({
